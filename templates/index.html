@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Laptop Timeline Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tippy.js (Hiển thị Tooltip sinh động khi Hover) -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/animations/scale.css" />
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/themes/light.css" />
+
+    <style>
+        /* Custom scrollbar thanh lịch */
+        .custom-scroll::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .custom-scroll:-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen pb-12">
+    <div class="max-w-[1600px] mx-auto p-4 md:p-6 lg:p-8">
+        <!-- Header -->
+        <div
+            class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            <div class="mb-4 md:mb-0">
+                <h1 class="text-3xl font-extrabold text-slate-800 tracking-tight">Laptop Timeline Dashboard</h1>
+                <p class="text-indigo-500 font-medium mt-1 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    <span id="current-month-label">Đang tải...</span>
+                </p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button onclick="changeMonth(-1)"
+                    class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 rounded-xl transition-colors font-semibold text-sm">&larr;
+                    Tháng trước</button>
+                <button onclick="changeMonth(1)"
+                    class="px-5 py-2.5 border-2 border-slate-100 hover:bg-slate-50 active:bg-slate-100 text-slate-700 rounded-xl transition-colors font-semibold text-sm">Tháng
+                    sau &rarr;</button>
+            </div>
+        </div>
+
+        <!-- Timeline Dashboard -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="p-5 md:p-6 text-slate-800">
+
+                <!-- Chú giải Màu sắc (Legend) & Thanh Lọc -->
+                <div
+                    class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6 border-b border-slate-100">
+                    <div class="flex items-center flex-wrap gap-4 text-sm font-medium" id="legend-container">
+                        <!-- Legend sẽ được Javascript tự động generate từ API -->
+                    </div>
+
+                    <!-- Ô tìm kiếm Serial -->
+                    <div class="relative w-full md:w-auto">
+                        <svg class="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <input type="text" id="search-serial" placeholder="Lọc mã Serial..." onkeyup="handleFilter()"
+                            class="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm w-full md:w-[280px] focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all text-slate-700 placeholder-slate-400 bg-slate-50">
+                    </div>
+                </div>
+
+                <!-- Bảng Grid Timeline -->
+                <div class="overflow-x-auto custom-scroll pb-4 -mx-5 px-5 md:-mx-6 md:px-6">
+                    <div id="timeline-grid" class="min-w-[1000px]">
+                        <!-- Toàn bộ Timeline sẽ đổ vào đây -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth() + 1; // getMonth() trả về 0-11
+        let tippyInstances = [];
+        let currentApiData = null; // Biến lưu lại dữ liệu hiện tại để lọc locally
+
+        // Fetch Dữ liệu từ Backend API
+        async function fetchTimeline(year, month) {
+            try {
+                const response = await fetch(`/api/timeline?year=${year}&month=${month}`);
+                const data = await response.json();
+                currentApiData = data;
+
+                // Clear filter khi đổi tháng
+                document.getElementById('search-serial').value = '';
+
+                renderTimeline(currentApiData);
+            } catch (error) {
+                console.error("Lỗi khi lấy dữ liệu:", error);
+            }
+        }
+
+        // Đổi tháng qua lại
+        function changeMonth(offset) {
+            currentMonth += offset;
+            if (currentMonth > 12) {
+                currentMonth = 1;
+                currentYear++;
+            } else if (currentMonth < 1) {
+                currentMonth = 12;
+                currentYear--;
+            }
+            fetchTimeline(currentYear, currentMonth);
+        }
+
+        // Kích hoạt khi gõ vào box tìm kiếm
+        function handleFilter() {
+            const keyword = document.getElementById('search-serial').value;
+            if (currentApiData) {
+                renderTimeline(currentApiData, keyword);
+            }
+        }
+
+        // Tự động sinh ghi chú màu sắc cho các phòng ban có máy được cấp trong tháng
+        function generateLegend(devices) {
+            const legendContainer = document.getElementById('legend-container');
+            const depts = new Map();
+
+            devices.forEach(d => {
+                d.assignments.forEach(a => {
+                    depts.set(a.employee.deptName, a.employee.colorCode);
+                });
+            });
+
+            let legendHtml = `<div class="flex items-center text-slate-400 mr-2 font-bold uppercase tracking-wider text-[11px] bg-slate-100 px-3 py-1.5 rounded-md">DEPARTMENT</div>`;
+            depts.forEach((color, name) => {
+                legendHtml += `
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-md border border-slate-100">
+                        <div class="w-2.5 h-2.5 rounded-full shadow-sm" style="background-color: ${color}"></div>
+                        <span class="text-slate-700 text-xs">${name}</span>
+                    </div>
+                `;
+            });
+            legendContainer.innerHTML = legendHtml || '<span class="text-slate-400 text-xs">Không có thiết bị đánh dấu</span>';
+        }
+
+        // Vẽ UI bằng CSS Grid
+        function renderTimeline(data, filterKeyword = '') {
+            // Xóa tooltip cũ trước khi thay HTML để tránh leak bộ nhớ
+            tippyInstances.forEach(instance => instance.destroy());
+
+            document.getElementById('current-month-label').innerText = `Tháng ${data.month} năm ${data.year}`;
+            const grid = document.getElementById('timeline-grid');
+
+            // Lọc danh sách thiết bị nếu có nhập filter
+            const devicesToRender = filterKeyword
+                ? data.devices.filter(d => d.serial_number.toLowerCase().includes(filterKeyword.toLowerCase()))
+                : data.devices;
+
+            generateLegend(devicesToRender);
+
+            if (devicesToRender.length === 0) {
+                grid.innerHTML = `<div class="text-center text-slate-400 py-10 font-medium">Không tìm thấy mã Serial nào phù hợp.</div>`;
+                return;
+            }
+
+            // Setup CSS Grid (Bỏ kẻ khung, dùng lại dạng round pill gap 4px). Hai cột đầu là 140px và 80px.
+            let html = `
+                <div style="display: grid; grid-template-columns: 140px 80px repeat(${data.days_in_month}, minmax(28px, 1fr)); gap: 4px;">
+            `;
+
+            // ----- 1. VẼ DÒNG TIÊU ĐỀ (HEADER ROWS: TÊN NGÀY) -----
+            html += `
+                <div class="font-bold text-slate-500 bg-slate-100/70 p-2 rounded-lg flex items-center justify-center shadow-sm sticky left-0 z-20 border border-slate-200">
+                    <span class="text-[10px] tracking-widest uppercase">Serial</span>
+                </div>
+                <div class="font-bold text-slate-500 bg-slate-100/70 p-2 rounded-lg flex items-center justify-center shadow-sm sticky left-[144px] z-20 border border-slate-200">
+                    <span class="text-[10px] tracking-widest uppercase">Status</span>
+                </div>
+            `;
+            for (let i = 1; i <= data.days_in_month; i++) {
+                html += `
+                    <div class="text-center font-bold text-slate-500 bg-slate-50/80 rounded-lg flex items-center justify-center text-[11px] border border-slate-100/80 p-1">
+                        ${i}
+                    </div>
+                `;
+            }
+
+            // ----- 2. VẼ CÁC TRỤC THIẾT BỊ -----
+            devicesToRender.forEach(device => {
+                // Tùy chỉnh màu sắc dựa trên trạng thái (In-Use, Standby, Reparing)
+                let statusColor = "bg-slate-500 text-white"; // Default
+                if (device.status === 'In-Use') statusColor = "bg-orange-500 text-white";
+                else if (device.status === 'Standby') statusColor = "bg-green-700 text-white";
+                else if (device.status === 'Reparing') statusColor = "bg-red-500 text-white";
+
+                // Vẽ cột chứa Thông tin Thiết bị cố định bên trái (Sticky). Rê chuột hiện chi tiết.
+                let deviceTooltip = `
+                    <div class="text-left p-1 min-w-[220px]">
+                        <div class="font-bold text-base text-indigo-400 mb-1">${device.model}</div>
+                        <div class="text-sm font-semibold opacity-90">${device.brandname || ''}</div>
+                        <hr class="my-2 border-white/20"/>
+                        <div class="text-xs opacity-90 mt-1 flex justify-between"><span>CPU:</span> <b>${device.cpu || 'N/A'}</b></div>
+                        <div class="text-xs opacity-90 mt-1 flex justify-between"><span>RAM:</span> <b>${device.ram || 'N/A'}</b></div>
+                        <div class="text-xs opacity-90 mt-1 flex justify-between"><span>Disk:</span> <b>${device.disk || 'N/A'}</b></div>
+                        <div class="text-xs opacity-90 mt-1 flex justify-between"><span>Thuê từ:</span> <b>${device.rent_startdate || 'N/A'}</b></div>
+                        <div class="text-xs opacity-90 mt-1 flex justify-between"><span>Hết hạn:</span> <b>${device.rent_expired || 'N/A'}</b></div>
+                    </div>
+                 `;
+
+                // Căn giữa nội dung với items-center và text-center
+                // Ô cột thiết bị gồm Serial và sau đó là cột Status
+                html += `
+                    <div class="bg-white p-2 rounded-lg border border-slate-200 shadow-[2px_0_4px_rgba(0,0,0,0.02)] sticky left-0 z-10 flex flex-col justify-center items-center cursor-help tippy-target hover:bg-slate-50 transition-colors"
+                         data-tippy-content='${deviceTooltip.replace(/'/g, "&apos;")}'>
+                        <div class="font-bold font-mono text-slate-700 text-[11px] whitespace-nowrap overflow-hidden text-ellipsis">${device.serial_number}</div>
+                    </div>
+                    <div class="bg-white p-1 rounded-lg border border-slate-200 shadow-[2px_0_4px_rgba(0,0,0,0.02)] sticky left-[144px] z-10 flex flex-col justify-center items-center">
+                        <span class="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-widest ${statusColor} text-center leading-tight shadow-sm">${device.status}</span>
+                    </div>
+                 `;
+
+                // Duyệt qua từng ngày của tháng đó
+                for (let day = 1; day <= data.days_in_month; day++) {
+                    const currentDateStr = `${data.year}-${String(data.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+                    // Kiểm tra xem vào ngày này, thiết bị có thuộc Assignment nào không
+                    const assignment = device.assignments.find(a => {
+                        const start = a.start_date;
+                        const end = a.end_date || '9999-12-31'; // Chưa trả máy
+                        return currentDateStr >= start && currentDateStr <= end;
+                    });
+
+                    if (assignment) {
+                        const nat_code = assignment.employee.nationality.toLowerCase();
+                        const flagImg = `<img src="https://flagcdn.com/w20/${nat_code}.png" srcset="https://flagcdn.com/w40/${nat_code}.png 2x" width="18" alt="${nat_code}" class="inline-block ml-2 rounded-[2px] shadow-sm">`;
+
+                        let tooltipContent = `
+                            <div class="text-left p-1">
+                                <div class="font-bold text-base flex items-center justify-between mb-1 pb-1 border-b border-slate-200/20">
+                                    <span>${assignment.employee.name}</span>
+                                    ${flagImg}
+                                </div>
+                                <div class="text-xs opacity-90 mt-1">Phòng ban: <b>${assignment.employee.deptName}</b></div>
+                                <div class="text-xs opacity-75 mt-1">Từ: ${assignment.start_date} ${assignment.end_date ? '<br/>Đến: ' + assignment.end_date : '<br/>(Đang sử dụng)'}</div>
+                            </div>
+                         `;
+
+                        // Thu mỏng ô với height thấp (min-height: 28px), góc bo vừa phải (rounded-md)
+                        html += `
+                            <div class="rounded-md shadow-sm transition-transform hover:scale-105 cursor-pointer tippy-target" 
+                                 style="background-color: ${assignment.employee.colorCode}; min-height: 28px; opacity: 0.95;"
+                                 data-tippy-content='${tooltipContent}'>
+                            </div>
+                         `;
+                    } else {
+                        // Trống thì hiện thị nền mờ style nhỏ
+                        html += `
+                            <div class="bg-slate-50/50 rounded-md border border-slate-100/50 min-height-[28px] hover:bg-slate-100 transition-colors"></div>
+                         `;
+                    }
+                }
+            });
+
+            html += `</div>`;
+            grid.innerHTML = html;
+
+            // Kích hoạt library Tippy.js cho các thẻ vừa inject
+            tippyInstances = tippy('[data-tippy-content]', {
+                allowHTML: true,
+                animation: 'scale',
+                theme: 'light',
+                interactive: true,
+                arrow: true
+            });
+        }
+
+        // Bắt đầu ngay khi load trang
+        fetchTimeline(currentYear, currentMonth);
+
+    </script>
+</body>
+
+</html>

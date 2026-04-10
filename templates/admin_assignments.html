@@ -1,0 +1,89 @@
+{% extends "admin_layout.html" %}
+
+{% block header_title %}Quản lý Cấp Phát (Assignments){% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h3 class="text-lg font-bold text-slate-800">Lịch sử Cấp phát</h3>
+        <p class="text-sm text-slate-500">Giao máy mới, thu hồi máy cũ, xem lịch sử giao nhận thiết bị.</p>
+    </div>
+    <a href="{{ url_for('admin_assignment_create') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+        Tiến hành Giao máy (Khởi tạo mới)
+    </a>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-600 mb-0">
+            <thead class="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+                <tr>
+                    <th class="px-4 py-3">Thiết bị (Device)</th>
+                    <th class="px-4 py-3">Người mượn (Employee)</th>
+                    <th class="px-4 py-3">Ngày nhận</th>
+                    <th class="px-4 py-3">Ngày trả</th>
+                    <th class="px-4 py-3">Trạng thái Bàn giao</th>
+                    <th class="px-4 py-3 text-right">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for a in assignments %}
+                <tr class="hover:bg-slate-50 transition-colors {% if not a.end_date %}bg-indigo-50/30{% endif %}">
+                    <td class="px-4 py-3">
+                        <div class="font-bold text-slate-800">{{ a.device.serial_number }}</div>
+                        <div class="text-xs text-slate-500">{{ a.device.brandname }} {{ a.device.model }}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="font-bold text-slate-800">{{ a.employee.full_name }}</div>
+                        <div class="text-xs text-slate-500 flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full" style="background-color: {{ a.employee.dept.color_code }}"></span>
+                            {{ a.employee.dept.name }}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 font-medium text-slate-700">{{ a.start_date.strftime('%d-%m-%Y') }}</td>
+                    <td class="px-4 py-3">
+                        {% if a.end_date %}
+                            <span class="text-slate-500">{{ a.end_date.strftime('%d-%m-%Y') }}</span>
+                        {% else %}
+                            <span class="text-slate-400 italic">Chưa trả</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if not a.end_date %}
+                            <span class="px-2 py-1 rounded bg-indigo-100 text-indigo-700 text-xs font-bold uppercase tracking-wider flex items-center gap-1 w-max">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                Đang mượn
+                            </span>
+                        {% else %}
+                            <span class="px-2 py-1 rounded bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wider w-max block">Đã hoàn tất</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            {% if not a.end_date %}
+                            <form action="{{ url_for('admin_assignment_return', assignment_id=a.id) }}" method="POST" class="inline" onsubmit="return confirm('Xác nhận thu hồi thiết bị này từ nhân viên? (Máy sẽ chuyển sang trạng thái Standby)');">
+                                <button type="submit" class="px-3 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 rounded text-xs font-bold transition-colors">
+                                    Xác nhận Trả Máy
+                                </button>
+                            </form>
+                            {% endif %}
+                            
+                            <form action="{{ url_for('admin_assignment_delete', assignment_id=a.id) }}" method="POST" class="inline ml-2" onsubmit="return confirm('Xóa lịch sử bàn giao máy này mãi mãi?');">
+                                <button type="submit" class="p-1.5 text-red-400 hover:bg-red-50 hover:text-red-600 rounded transition-colors" title="Delete History">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="px-4 py-8 text-center text-slate-400 border-b-0">Không có dữ liệu cấp phát nào.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
