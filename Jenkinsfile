@@ -31,8 +31,8 @@ pipeline {
                 sshagent(credentials: ['icm']) {
                     sh """
 ssh -A -o StrictHostKeyChecking=no -tt $USER_ADMIN@$SERVER_IP <<EOF
-docker-compose -f /opt/it-central-management/docker-compose.yaml pull > /dev/null
-docker-compose -f /opt/it-central-management/docker-compose.yaml up -d > /dev/null
+docker compose -f /opt/it-central-management/docker-compose.yaml pull > /dev/null
+docker compose -f /opt/it-central-management/docker-compose.yaml up -d > /dev/null
 exit
 EOF
                     """
