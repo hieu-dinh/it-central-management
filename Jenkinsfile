@@ -26,7 +26,7 @@ pipeline {
         stage("Deploy") {
             steps {
                 sshagent(credentials:['icm'] ) {
-                    sh "scp docker-compose.yml $USER_ADMIN@$SERVER_IP:/opt/inventory-management/docker-compose.yml" 
+                    sh "scp docker-compose.yml $USER_ADMIN@$SERVER_IP:/opt/it-central-management/docker-compose.yml" 
                 }
                 sshagent(credentials: ['icm']) {
                     sh """
