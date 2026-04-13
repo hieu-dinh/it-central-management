@@ -1,6 +1,21 @@
 pipeline {
-    echo "Hello World! Jenkins pipeline here"
-    echo "This is the build number ${BUILD_NUMBER}"
+    agent any 
+
+    stages {
+        stage('Hello') {
+            steps {
+                echo 'Hello World from Jenkins!'
+            }
+        }
+        
+        stage('Check Environment') {
+            steps {
+                echo 'Checking system info...'
+                sh 'uptime'
+                sh 'whoami'
+            }
+        }
+    }
 //     agent any
 //     environment {
 //         REGISTRY = 'hieudinh13'
