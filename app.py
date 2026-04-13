@@ -13,9 +13,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'it-central-management-secret-key-12345'
 # Cấu hình SQLite file nằm tại thư mục gốc của project
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'app.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'appdata', 'app.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 db.init_app(app)
 
 login_manager = LoginManager()

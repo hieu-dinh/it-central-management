@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+venv/
+env/
+.git/
+.gitignore
+app.db
+.gemini/
+*.sqlite3
+seed_data.py
