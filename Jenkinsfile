@@ -26,13 +26,13 @@ pipeline {
         stage("Deploy") {
             steps {
                 sshagent(credentials:['icm'] ) {
-                    sh "scp docker-compose.yml $USER_ADMIN@$SERVER_IP:/opt/it-central-management/docker-compose.yml" 
+                    sh "scp -o StrictHostKeyChecking=no docker-compose.yaml $USER_ADMIN@$SERVER_IP:/opt/it-central-management/docker-compose.yaml" 
                 }
                 sshagent(credentials: ['icm']) {
                     sh """
 ssh -A -o StrictHostKeyChecking=no -tt $USER_ADMIN@$SERVER_IP <<EOF
-docker-compose -f /opt/it-central-management/docker-compose.yml pull > /dev/null
-docker-compose -f /opt/it-central-management/docker-compose.yml up -d > /dev/null
+docker-compose -f /opt/it-central-management/docker-compose.yaml pull > /dev/null
+docker-compose -f /opt/it-central-management/docker-compose.yaml up -d > /dev/null
 exit
 EOF
                     """
