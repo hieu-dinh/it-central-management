@@ -15,8 +15,8 @@ Architectures: $(dpkg --print-architecture)
 Signed-By: /etc/apt/keyrings/docker.asc
 EOF
 
-sudo apt update
-
-# Install Docker packages
+# Install Docker packages for Debian
 sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+# Add current user to docker group
+sudo usermod -aG $USER docker
