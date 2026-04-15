@@ -265,16 +265,18 @@
                          `;
 
                         // Thu mỏng ô với height thấp (min-height: 28px), góc bo vừa phải (rounded-md)
+                        // BUGFIX: Escape single quotes in tooltipContent to avoid breaking the HTML attribute
+                        const escapedTooltip = tooltipContent.replace(/'/g, "&apos;");
                         html += `
                             <div class="rounded-md shadow-sm transition-transform hover:scale-105 cursor-pointer tippy-target" 
                                  style="background-color: ${assignment.employee.colorCode}; min-height: 28px; opacity: 0.95;"
-                                 data-tippy-content='${tooltipContent}'>
+                                 data-tippy-content='${escapedTooltip}'>
                             </div>
                          `;
                     } else {
                         // Trống thì hiện thị nền mờ style nhỏ
                         html += `
-                            <div class="bg-slate-50/50 rounded-md border border-slate-100/50 min-height-[28px] hover:bg-slate-100 transition-colors"></div>
+                            <div class="bg-slate-50/50 rounded-md border border-slate-100/50 min-h-[28px] hover:bg-slate-100 transition-colors"></div>
                          `;
                     }
                 }
