@@ -28,6 +28,14 @@ def load_user(user_id):
 
 with app.app_context():
     db.create_all()
+    # BUG FIX: Dọn dẹp các record Assignment bị lưu end_date = '' (empty string) thay vì NULL
+    # Nguyên nhân: HTML form submit empty field → Python nhận được '' → SQLite lưu '' thay vì NULL
+    try:
+        from sqlalchemy import text
+        db.session.execute(text("UPDATE assignment SET end_date = NULL WHERE end_date = ''"))
+        db.session.commit()
+    except Exception as e:
+        print(f"[WARN] Could not run end_date cleanup: {e}")
 
 @app.route('/')
 def dashboard():
@@ -272,16 +280,19 @@ def admin_assignment_create():
     if request.method == 'POST':
         device_id = request.form.get('device_id')
         employee_id = request.form.get('employee_id')
-        raw_start = request.form.get('start_date')
+        raw_start = request.form.get('start_date') or ''
+        raw_end = request.form.get('end_date') or ''  # FIX: Lấy end_date từ form, có thể rỗng
         
         start_date = datetime.strptime(raw_start, '%Y-%m-%d').date() if raw_start else date.today()
+        # FIX: Nếu end_date bị rỗng ('') thì lưu NULL thay vì chuỗi rỗng
+        end_date = datetime.strptime(raw_end, '%Y-%m-%d').date() if raw_end else None
         
         # 1. Tạo Assignment mới lưu vào DB
         new_assignment = Assignment(
             device_id=device_id,
             employee_id=employee_id,
             start_date=start_date,
-            end_date=None # Chưa có ngày trả
+            end_date=end_date  # FIX: Đúng kiểu Date hoặc None, không bao giờ là ''
         )
         db.session.add(new_assignment)
         
